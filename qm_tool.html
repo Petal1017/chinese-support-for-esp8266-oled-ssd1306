@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+	字体大小：
+	<input type="number" name="" id="fontsize" onchange="changeFontSize()" value="16">
+	<textarea name="" id="model" cols="100" rows="15" placeholder="输入要取模的字符"></textarea>
+	<br>
+	<br>
+	<button onclick="getZm()">提取</button>
+	<br>
+	<br>
+	<textarea id="result" type="text" placeholder="模数据" disabled rows="15" cols="100"></textarea>
+</body>
+<script>
+	let model = document.getElementById("model");
+	let result = document.getElementById("result");
+	let fontsize = document.getElementById("fontsize");
+	var canvas=document.createElement("canvas");//创建canvas
+	var ctx=canvas.getContext("2d");//获得内容描述句柄
+	var bitArr=new Array();
+	var fontSize=16;
+	var font="宋体";
+	var bs=Math.ceil(fontSize/8);//每行占字节数
+	
+	function getZm(){
+		if(!model.value) return;
+		canvas.width=fontSize;
+		canvas.height=fontSize;
+		ctx.textAlign="left";
+		ctx.textBaseline="top";
+		ctx.font=fontSize+"px '"+font+"'";
+		if(model.value.length == 1){
+			for(var i=0;i<8;i++)bitArr[i]=(0x80>>i);//初始化位数组
+			var outStr="unsigned char zm["+(bs*fontSize)+"]={"+getzm(model.value)+"};";
+			// document.write(outStr);
+			result.value = outStr;
+		}
+		else
+		{
+			var outStr=`unsigned char zm[][${bs*fontSize}] = {`;
+			for(let str of model.value){
+				for(var i=0;i<8;i++)bitArr[i]=(0x80>>i);//初始化位数组
+				// var outStr="unsigned char zm["+(bs*fontSize)+"]={"+getzm(str)+"};";
+				outStr += "{"+getzm(str)+"},";
+				// document.write(outStr);
+			}
+			outStr += "};";
+			result.value = outStr;
+		}
+		
+	}
+    
+	
+	
+	function getzm(c){//获取一个字符的字模的过程
+		ctx.fillStyle="#000000";
+		ctx.fillRect(0,0,fontSize,fontSize);//涂背景
+		ctx.fillStyle="#FFFFFF";
+		ctx.fillText(c,0,0);//写字
+		var data=ctx.getImageData(0,0,fontSize,fontSize).data;//获取图像
+		console.log(data)
+		var zm=new Array(bs*fontSize);
+		for(var i=0;i<zm.length;i++)zm[i]=0;//初始化字模数组
+		for(var i=0;i<fontSize;i++)//读像素值组成字模数组
+			for(var j=0;j<fontSize;j++)
+				if(data[i*fontSize*4+j*4]) zm[parseInt(j/8)+i*bs]+=bitArr[j%8];
+		console.log(zm);
+		var outStr="";//将字模数组转化为十六进制形式
+		for(var i=0;i<zm.length-1;i++) outStr+=toHex(zm[i])+",";
+		outStr+=toHex(zm[i]);
+		return outStr;
+	}
+	
+	
+	function toHex(num){//将一个数字转化成16进制字符串形式
+		num = parseInt(int2bitmap(num).reverse().join(""), 2);
+		let str = num<16?"0"+num.toString(16).toUpperCase():num.toString(16).toUpperCase();
+		return "0x" + str.split("").join("");
+		return "0x" + str.split("").reverse().join("");
+	}
+
+	function int2bitmap(num){
+		let arr = [];
+		arr.push(num >= 128 ? 1 : 0);
+		num %= 128;
+		arr.push(num >= 64 ? 1 : 0);
+		num %= 64;
+		arr.push(num >= 32 ? 1 : 0);
+		num %= 32;
+		arr.push(num >= 16 ? 1 : 0);
+		num %= 16;
+		arr.push(num >= 8 ? 1 : 0);
+		num %= 8;
+		arr.push(num >= 4 ? 1 : 0);
+		num %= 4;
+		arr.push(num >= 2 ? 1 : 0);
+		num %= 2;
+		arr.push(num >= 1 ? 1 : 0);
+		return arr;
+	}
+
+	function changeFontSize(){
+		fontSize = fontsize.value;
+	}
+</script>
+</html>
